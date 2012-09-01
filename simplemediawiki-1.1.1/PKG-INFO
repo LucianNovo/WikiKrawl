@@ -1,0 +1,15 @@
+Metadata-Version: 1.1
+Name: simplemediawiki
+Version: 1.1.1
+Summary: Extremely low-level wrapper to the MediaWiki API
+Home-page: https://github.com/ianweller/python-simplemediawiki
+Author: Ian Weller
+Author-email: iweller@redhat.com
+License: UNKNOWN
+Description: UNKNOWN
+Platform: UNKNOWN
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: GNU Library or Lesser General Public License (LGPL)
+Requires: kitchen
+Requires: simplejson
