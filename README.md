@@ -45,7 +45,7 @@ Welcome to the WikiKrawl project.
           
 Currently on Phase 1:
   This project will have many iterations, begining with a build that accesses(parses and collects) eventData from a
-  single article. This data will be stored on a locally in a TBD data structure that will be fed to a simileTimeline input. 
+  single article. This data will be stored on a locally in a TBD data structure that will be fed to a simileTimeline. 
   
   
   
