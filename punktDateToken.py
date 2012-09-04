@@ -33,7 +33,9 @@ def DateGather(htmlText,datesentencedateDataStruct): #returns the sentences and 
 	htmlText = TOCKiller(htmlText)
 	htmlTextSoupObj = BeautifulSoup(htmlText)
 	text = htmlTextSoupObj.get_text()
-	text = text.replace("\n","")
+	text = text.replace("\'","\\\'")
+	text = text.replace("\\n", "")
+	text = referenceBracketRemover(text)
 	text = cutOffSection(text, "See also")
 	codecs.open("TextFromArticleFile",'w',encoding='utf-8').write(text)#save the article text to a local location. 
 	sent_detector = nltk.data.load('tokenizers/punkt/english.pickle')
@@ -43,6 +45,7 @@ def DateGather(htmlText,datesentencedateDataStruct): #returns the sentences and 
 		subList = PunktWordTokenizer().tokenize(sentence)
 		for w in subList:
 			if w.startswith('19'):
+				sentence = sentence.replace("\n","")
 				datesentencedateDataStruct.append([ w[:4], sentence])
 				print w[:4]
 				print sentence
@@ -58,11 +61,18 @@ def TOCKiller(inpArticle):#removes a certain content block while there it is sti
 	endTOC     = inpArticle[startTOC:].find('</table>')
 	retArticle = inpArticle[:startTOC] + inpArticle[(endTOC+startTOC):]
 	return retArticle 
+	
+def referenceBracketRemover(inpText):
+	import re
+	inpText = re.sub(r'\[\d{,3}\]',"",inpText)
+	inpText = re.sub(r'\[(.*?)\]',"",inpText)
+	return inpText
 
 def rewriteTheJS(mainArticleTitle,dateEventIndex):
 	import codecs
-	simileTimelineJSFilePath = "../timeline_local_example_1.0/local_example/local_data.js"
+	simileTimelineJSFilePath = "timeline_local_example_1.0/local_example/local_data.js"
 	import os.path
+	import re
 	if (os.path.isfile(simileTimelineJSFilePath)):
 		JSfile = codecs.open(simileTimelineJSFilePath, 'w', encoding='utf-8')
 		appendFile = """var timeline_data = {  // save as a global variable
@@ -81,7 +91,7 @@ def rewriteTheJS(mainArticleTitle,dateEventIndex):
 			timelineEvent += (event[1])
 			timelineEvent += ("""' , 'description' : '""") 
 			timelineEvent += (event[1])
-			timelineEvent += ("""' }""")
+			timelineEvent += ("""' }, \n""")
 			appendFile += (timelineEvent)
 		appendFile += (""" ] }""")
 		JSfile.write(appendFile)
