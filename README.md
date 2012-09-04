@@ -6,6 +6,7 @@ Welcome to the WikiKrawl project.
   
   
   To Summarize the development process, we'll iterate by developing the following functions of the program:
+  
     Phase 1: collect the simplist of data using simplemediawikiapi
         Collect(dates and the sentences they belong to(dateSentences))
             -from articles
