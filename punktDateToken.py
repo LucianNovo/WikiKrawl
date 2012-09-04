@@ -17,32 +17,47 @@ def command_control(article_title):
 	#preform a parse of all innerWiki links, or use the media wikiApi to shoo
 
 def fetch_article_in_wikitext(articleTitle): #fetches the article data using the simplemediawiki lib.
+	import codecs
 	wiki = MediaWiki('http://en.wikipedia.org/w/api.php')
 	wikiTextPage = wiki.call({'action':'parse', 'page': articleTitle, 'prop': 'wikitext'});
-	htmlArticle = wiki.call({ 'action':'parse','page':articleTitle, 'prop': 'text'});#
-	#print "The WikiText Article: "
-	#print wikiTextPage
-	#print "The Article in clean English: "
-	#print article
+	wikiTextPage = wikiTextPage['parse']['wikitext']['*']
+	codecs.open("FetchFunctionPulls/fetchWikiTextPage",'w', encoding='utf-8').write(wikiTextPage)
+	htmlArticle = wiki.call({ 'action':'parse','page':articleTitle, 'prop': 'text'});
+	htmlArticle = htmlArticle['parse']['text']['*']
+	codecs.open("FetchFunctionPulls/fetchHTMLPage",'w', encoding='utf-8').write(htmlArticle)
+	print type(htmlArticle)
 	return wikiTextPage, htmlArticle
 
 def DateGather(htmlText,datesentencedateDataStruct): #returns the sentences and dates in a list (sentences, dates)
-	htmlText = str(htmlText)
+	import codecs
+	htmlText = TOCKiller(htmlText)
 	htmlTextSoupObj = BeautifulSoup(htmlText)
 	text = htmlTextSoupObj.get_text()
 	text = text.replace("\n","")
+	text = cutOffSection(text, "See also")
+	codecs.open("TextFromArticleFile",'w',encoding='utf-8').write(text)#save the article text to a local location. 
 	sent_detector = nltk.data.load('tokenizers/punkt/english.pickle')
 	sentenceList = sent_detector.tokenize(text.strip())
-	tempRedundancyCheck = 0#stores sentences to make sure that one sentence isn't reused multiple times. 
+	tempRedundancyCheck = 0 #stores sentences to make sure that one sentence isn't reused multiple times. Not implemented yet bc redundancy is currently desired.
 	for sentence in sentenceList:
 		subList = PunktWordTokenizer().tokenize(sentence)
-		saveLocForArtText = "../wikitext.doc" 
 		for w in subList:
 			if w.startswith('19'):
 				datesentencedateDataStruct.append([ w[:4], sentence])
 				print w[:4]
 				print sentence
 	return datesentencedateDataStruct
+
+def cutOffSection(inpText, stopPoint):
+	return inpText[:inpText.rfind(stopPoint)]
+	
+#use the wikitext formatting to remove the contents bar.
+#this function will serve as an intermediary between grabing and cleaning.
+def TOCKiller(inpArticle):#removes a certain content block while there it is still formatted in wikitext writup
+	startTOC   = inpArticle.find('<table id="toc" class="toc">')
+	endTOC     = inpArticle[startTOC:].find('</table>')
+	retArticle = inpArticle[:startTOC] + inpArticle[(endTOC+startTOC):]
+	return retArticle 
 
 def rewriteTheJS(mainArticleTitle,dateEventIndex):
 	import codecs
@@ -53,7 +68,7 @@ def rewriteTheJS(mainArticleTitle,dateEventIndex):
 		appendFile = """var timeline_data = {  // save as a global variable
 						'dateTimeFormat': 'iso8601',
 						'wikiURL': "http://simile.mit.edu/shelf/",
-						'wikiSection': """
+						'wikiSection': '"""
 		appendFile += (mainArticleTitle)
 		appendFile += ("""', 'events' : [ """)
 		for event in dateEventIndex:
