@@ -44,9 +44,12 @@ Welcome to the WikiKrawl project.
     Phase 6: Let the users decide what phase 6 will be. 
           
           
-Currently on Phase 1:
+Finnished Phase 1:
   This project will have many iterations, begining with a build that accesses(parses and collects) eventData from a
   single article. This data will be stored on a locally in a TBD data structure that will be fed to a simileTimeline. 
-  
+
+Currently on Phase 2:
+  With the timeline up and running, it is time to begin to format events for the timeline, and build metadata for each of
+  the eventDate entries. Gather Dates will now have a larger role in gathering references, and building more descriptive events.  
   
   
