@@ -52,4 +52,8 @@ Currently on Phase 2:
   With the timeline up and running, it is time to begin to format events for the timeline, and build metadata for each of
   the eventDate entries. Gather Dates will now have a larger role in gathering references, and building more descriptive events.  
   
-  
+  In building a descriptive datatype for the dateEvents, I've made the following:
+      dateEvent = [ dateSentences, displayParameters, referenceMetadata ] 
+          dateSentences = [ startDate, endDate, dateSentence ]
+          displayParameters = [ isBand(0/1), early/late(0/1)]
+          referenceMetadata = [ referenceFromSentence ]
