@@ -6,15 +6,33 @@ import nltk.data
 import os.path
 #from nltk.tokenize import word_tokenize, workpunct_tokenize, sent_tokenize
 
+class dispParameters: 
+	def __init__(self, band, frame):
+		self.isBand = band #if there should be a band for the event(0/1)
+		self.frame  = frame #early(0), late(1), the(era, decade, etc)(2) 
+		
+class referenceMetadata:
+	def __init__(self, inpReferenceFromSentence):
+		self.referenceFromSentence = inpReferenceFromSentence #the reference to an internal article that is within the sentence.#Might become a list!
+		
+class dateSentence:
+	def __init__(self, inpDateSentence, inpDate):
+		self.dateSentence = inpDateSentence
+		self.date		  = inpDate
+
+class eventEntry:
+	def __init__(self, inpDateSentence, inpDate, inpBand, inpFrame, inpReferenceFromSentence):
+		self.dateSentenceEntry = dateSentence(inpDateSentence, inpDate) 
+		self.dispParameters    = dispParameters(inpBand, inpFrame)
+		self.referenceMetadata = referenceMetadata(inpReferenceFromSentence)
+
 from nltk.tokenize.punkt import PunktWordTokenizer
 
 def command_control(article_title):
-	dateSentenceDate = []
+	dateSentenceDate = {}
 	articleInWikitext, htmlArticle	= fetch_article_in_wikitext(article_title)
 	dateSentenceDate = DateGather(htmlArticle, dateSentenceDate)
 	rewriteTheJS(article_title, dateSentenceDate)
-	#print dateSentenceDate
-	#preform a parse of all innerWiki links, or use the media wikiApi to shoo
 
 def fetch_article_in_wikitext(articleTitle): #fetches the article data using the simplemediawiki lib.
 	import codecs
@@ -25,7 +43,7 @@ def fetch_article_in_wikitext(articleTitle): #fetches the article data using the
 	htmlArticle = wiki.call({ 'action':'parse','page':articleTitle, 'prop': 'text'});
 	htmlArticle = htmlArticle['parse']['text']['*']
 	codecs.open("FetchFunctionPulls/fetchHTMLPage",'w', encoding='utf-8').write(htmlArticle)
-	print type(htmlArticle)
+	#print type(htmlArticle)
 	return wikiTextPage, htmlArticle
 
 def DateGather(htmlText,datesentencedateDataStruct): #returns the sentences and dates in a list (sentences, dates)
@@ -34,29 +52,36 @@ def DateGather(htmlText,datesentencedateDataStruct): #returns the sentences and 
 	htmlTextSoupObj = BeautifulSoup(htmlText)
 	text = htmlTextSoupObj.get_text()
 	text = text.replace("\'","\\\'")
-	text = text.replace("\\n", "")
+	text = text.replace("\n", "")
 	text = referenceBracketRemover(text)
 	text = cutOffSection(text, "See also")
 	codecs.open("TextFromArticleFile",'w',encoding='utf-8').write(text)#save the article text to a local location. 
 	sent_detector = nltk.data.load('tokenizers/punkt/english.pickle')
 	sentenceList = sent_detector.tokenize(text.strip())
-	tempRedundancyCheck = 0 #stores sentences to make sure that one sentence isn't reused multiple times. Not implemented yet bc redundancy is currently desired.
+	lastWord = -1
 	for sentence in sentenceList:
-		subList = PunktWordTokenizer().tokenize(sentence)
-		for w in subList:
+		subList = PunktWordTokenizer().tokenize(sentence)#lists all words in the sentence
+		for w in subList: #for each word
 			if w.startswith('19'):
 				sentence = sentence.replace("\n","")
-				datesentencedateDataStruct.append([ w[:4], sentence])
-				print w[:4]
-				print sentence
+				datesentencedateDataStruct = insertIntoDict(datesentencedateDataStruct, w, sentence, lastWord)
+				lastWord = w
 	return datesentencedateDataStruct
 
-def cutOffSection(inpText, stopPoint):
-	return inpText[:inpText.rfind(stopPoint)]
+def insertIntoDict(dictDataName, inpWord, inpSentence, inpLastWord):#inserts the semanticSentenceData into an appropriate dictionary
+	inpReferenceFromSentence = 0 
+	if(inpWord.endswith('s')):
+		era = 1
+	else:
+		era = 0
+	if(dictDataName.has_key(inpWord[:4])):
+		dictDataName[inpWord[:4]][inpSentence] = eventEntry(inpSentence, inpWord[:4], era, inpLastWord, inpReferenceFromSentence) #must match the following call: 
+	else:
+		dictDataName[inpWord[:4]] = {}#create a key for that date, then a dictionary for the semanticEventEntries. 
+		dictDataName[inpWord[:4]][inpSentence] = eventEntry(inpSentence, inpWord[:4], era, inpLastWord, inpReferenceFromSentence) #must match the following call: (self, inpDateSentence, inpDate, inpBand, inpFrame, inpReferenceFromSentence):
+	return dictDataName
 	
-#use the wikitext formatting to remove the contents bar.
-#this function will serve as an intermediary between grabing and cleaning.
-def TOCKiller(inpArticle):#removes a certain content block while there it is still formatted in wikitext writup
+def TOCKiller(inpArticle):#removes a certain content block while there it is still formatted in wikitext writup #use the wikitext formatting to remove the contents bar. #this function will serve as an intermediary between grabing and cleaning.
 	startTOC   = inpArticle.find('<table id="toc" class="toc">')
 	endTOC     = inpArticle[startTOC:].find('</table>')
 	retArticle = inpArticle[:startTOC] + inpArticle[(endTOC+startTOC):]
@@ -68,7 +93,7 @@ def referenceBracketRemover(inpText):
 	inpText = re.sub(r'\[(.*?)\]',"",inpText)
 	return inpText
 
-def rewriteTheJS(mainArticleTitle,dateEventIndex):
+def rewriteTheJS(mainArticleTitle,dateEventDictDict):
 	import codecs
 	simileTimelineJSFilePath = "timeline_local_example_1.0/local_example/local_data.js"
 	import os.path
@@ -80,24 +105,29 @@ def rewriteTheJS(mainArticleTitle,dateEventIndex):
 						'wikiURL': "http://simile.mit.edu/shelf/",
 						'wikiSection': '"""
 		appendFile += (mainArticleTitle)
-		appendFile += ("""', 'events' : [ """)
-		for event in dateEventIndex:
-			timelineEvent = ""
-			timelineEvent += (""" {\'start\': '""")
-			timelineEvent += (event[0])
-			timelineEvent += ("""' , 'end': '""")
-			timelineEvent += (event[0])
-			timelineEvent += ("""' , 'title' : '""")
-			timelineEvent += (event[1])
-			timelineEvent += ("""' , 'description' : '""") 
-			timelineEvent += (event[1])
-			timelineEvent += ("""' }, \n""")
-			appendFile += (timelineEvent)
+		appendFile += ("""', 'events' : [ \n""")
+		for dateDict in dateEventDictDict.values():
+			for event in dateDict.values():			
+				timelineEvent = ""
+				timelineEvent += (""" {\'start\': '""")
+				timelineEvent += event.dateSentenceEntry.date
+				timelineEvent += ("""' , 'end': '""")
+				timelineEvent += event.dateSentenceEntry.date
+				timelineEvent += ("""' , 'title' : '""")
+				timelineEvent += event.dateSentenceEntry.dateSentence
+				timelineEvent += ("""' , 'description' : '""") 
+				timelineEvent += event.dateSentenceEntry.dateSentence
+				timelineEvent += ("""', 'icon' : 'dull-blue-circle.png'""")
+				timelineEvent += ("""}, \n""")
+				appendFile += (timelineEvent)
+		appendFile = cutOffSection(appendFile, ',')
 		appendFile += (""" ] }""")
 		JSfile.write(appendFile)
 
+def cutOffSection(inpText, stopPoint):
+	return inpText[:inpText.rfind(stopPoint)]
+
 command_control('Great Depression')
-		
 		
 		
 
